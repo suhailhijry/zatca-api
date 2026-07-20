@@ -211,6 +211,7 @@ class ZatcaClient
                 $sanitizedHeaders = ['[unreadable headers]'];
             }
 
+
             try {
                 $stream = $request->getBody();
                 if ($stream->isSeekable()) {
@@ -226,12 +227,28 @@ class ZatcaClient
                 $body = '[unreadable body]';
             }
 
+            try {
+                $stream = $response->getBody();
+                if ($stream->isSeekable()) {
+                    $stream->rewind();
+                    $contents = $stream->getContents();
+                    $stream->rewind();
+                } else {
+                    $contents = (string) $stream;
+                }
+
+                $responseBody = $contents;
+            } catch (Throwable $ex) {
+                $responseBody = '[unreadable body]';
+            }
+
             throw (new ZatcaRequestException($e->getMessage(), [], $e->getCode(), $e))
                 ->withContext([
                     'uri' => $request->getUri(),
                     'body' => $body,
                     'method' => $request->getMethod(),
                     'headers' => $sanitizedHeaders,
+                    'resposne' => json_decode($responseBody, true, 512, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?? $responseBody,
                 ]);
         }
     }
